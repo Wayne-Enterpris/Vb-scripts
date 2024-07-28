@@ -3,17 +3,15 @@ Option Explicit
 ' Constants
 Const ZIP_DIR = "C:\path\to\zip\directory"
 Const DEST_DIR = "C:\path\to\destination\directory"
-Const PATTERN = "*.txt" ' Change this to the pattern you want to search for
 Const LIST_FILE = "C:\path\to\list\file.txt"
 Const LOG_FILE = "C:\path\to\log\file.txt"
 
 Dim fso, zipFileList, zipFile, zipName, destPath, zipFileName, logFile
-Dim countDict, filePattern, fileCount
+Dim countDict
 
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set zipFileList = fso.OpenTextFile(LIST_FILE, 1)
 Set countDict = CreateObject("Scripting.Dictionary")
-filePattern = "*" & PATTERN
 
 ' Process each ZIP file in the list
 Do Until zipFileList.AtEndOfStream
@@ -39,12 +37,12 @@ logFile.Close
 
 ' Function to process a ZIP file
 Sub ProcessZipFile(zipPath, zipName)
-    Dim shellApp, zipFolder, file
+    Dim shellApp, zipFolder, item
     Set shellApp = CreateObject("Shell.Application")
     Set zipFolder = shellApp.NameSpace(zipPath)
     
     If Not zipFolder Is Nothing Then
-        Dim subFolder, item
+        Dim subFolder
         For Each item In zipFolder.Items
             If item.IsFolder Then
                 For Each subFolder In item.SubFolders
@@ -59,17 +57,15 @@ End Sub
 
 ' Function to process a file
 Sub ProcessFile(file, zipFolder, zipName)
-    Dim fileName, destFileName, destFile
+    Dim fileName, destFileName
     fileName = file.Name
-    If fileName Like filePattern Then
-        ' Construct destination path and file name
-        destFileName = DEST_DIR & "\" & zipName & "_" & fileName
-        destFile = fso.CreateTextFile(destFileName, True)
-        
-        ' Extract file
-        zipFolder.CopyHere file, 4 ' 4 = Do not display progress
-        countDict(zipName) = countDict(zipName) + 1
-    End If
+    
+    ' Construct destination path and file name
+    destFileName = DEST_DIR & "\" & zipName & "_" & fileName
+    
+    ' Extract file
+    zipFolder.CopyHere file, 4 ' 4 = Do not display progress
+    countDict(zipName) = countDict(zipName) + 1
 End Sub
 
 ' Function to process a subfolder
