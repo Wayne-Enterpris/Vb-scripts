@@ -1,67 +1,60 @@
 Option Explicit
 
-' Path to the text file containing the ZIP file names
-Const ZIP_FILE_LIST_PATH = "C:\path\to\zipfilelist.txt"
+' Define the file name to search for, the path to the ZIP file, and the extraction folder
+Dim targetFileName, zipFilePath, extractFolder
+targetFileName = "example.txt" ' Change this to the file you're looking for
+zipFilePath = "C:\Path\To\Your\Archive.zip" ' Change this to the path of your ZIP file
+extractFolder = "C:\Path\To\Extract\Folder" ' Change this to the path of the folder where you want to extract the file
 
-' Pattern to match the files inside the ZIP archives (e.g., "*.txt")
-Const FILE_PATTERN = "*.txt"
+' Call the function to start the search and extraction
+ExtractFileFromZip zipFilePath, targetFileName, extractFolder
 
-' Directory to extract the matching files
-Const EXTRACT_TO_DIR = "C:\path\to\extracted\files\"
-
-Dim fso, shell, zipFileList, zipFilePath, zipFile, extractedFolder
-Dim fileList, zipFileStream, fileName, fileInZip
-Dim fileSystem, folder, file
-
-' Create FileSystemObject and Shell.Application
-Set fso = CreateObject("Scripting.FileSystemObject")
-Set shell = CreateObject("Shell.Application")
-
-' Read the ZIP file names from the text file
-Set zipFileList = fso.OpenTextFile(ZIP_FILE_LIST_PATH, 1) ' 1 = ForReading
-
-Do Until zipFileList.AtEndOfStream
-    zipFilePath = zipFileList.ReadLine
-    If fso.FileExists(zipFilePath) Then
-        ' Extract files matching the pattern
-        ProcessZipFile zipFilePath
-    Else
-        WScript.Echo "ZIP file not found: " & zipFilePath
+' Function to search for and extract the file from the ZIP archive
+Sub ExtractFileFromZip(zipPath, fileName, outputFolder)
+    Dim shellApp, zipFolder, fileFound
+    fileFound = False
+    
+    ' Create the Shell.Application object
+    Set shellApp = CreateObject("Shell.Application")
+    
+    ' Open the ZIP file
+    Set zipFolder = shellApp.NameSpace(zipPath)
+    
+    ' Check if the ZIP file is accessible
+    If zipFolder Is Nothing Then
+        WScript.Echo "ZIP file not found or inaccessible: " & zipPath
+        Exit Sub
     End If
-Loop
-
-zipFileList.Close
-WScript.Echo "Processing completed."
-
-' Subroutine to process each ZIP file
-Sub ProcessZipFile(zipFilePath)
-    Dim zipFolder, file, files, extractedFolderPath
     
-    ' Open the ZIP file as a folder
-    Set zipFolder = shell.NameSpace(zipFilePath)
+    ' Search and extract the file
+    fileFound = SearchAndExtractFile(zipFolder, fileName, outputFolder)
     
-    If Not zipFolder Is Nothing Then
-        ' Create the extraction directory if it doesn't exist
-        If Not fso.FolderExists(EXTRACT_TO_DIR) Then
-            fso.CreateFolder(EXTRACT_TO_DIR)
-        End If
-        
-        ' Iterate over the files in the ZIP folder
-        For Each file In zipFolder.Items
-            If file.IsFolder Then
-                ' Skip folders
-                Continue For
-            End If
-            
-            ' Check if the file matches the pattern
-            If LCase(file.Name) Like LCase(FILE_PATTERN) Then
-                ' Extract the file
-                WScript.Echo "Extracting: " & file.Name
-                ' Use Shell to copy file to destination folder
-                shell.NameSpace(EXTRACT_TO_DIR).CopyHere file
-            End If
-        Next
+    If fileFound Then
+        WScript.Echo "File extracted successfully: " & fileName
     Else
-        WScript.Echo "Unable to open ZIP file: " & zipFilePath
+        WScript.Echo "File not found in ZIP archive: " & fileName
     End If
 End Sub
+
+' Recursive function to search for a file in all folders within the ZIP archive and extract it
+Function SearchAndExtractFile(folder, fileName, outputFolder)
+    Dim file, subFolder
+    Dim found
+
+    found = False
+
+    ' Search in the current folder
+    For Each file In folder.Items
+        If file.IsFolder Then
+            ' Recursively search in subfolders
+            found = SearchAndExtractFile(file, fileName, outputFolder)
+        ElseIf LCase(file.Name) = LCase(fileName) Then
+            ' Extract the file if found
+            file.CopyHere outputFolder & "\" & file.Name
+            found = True
+            Exit For
+        End If
+    Next
+
+    SearchAndExtractFile = found
+End Function
