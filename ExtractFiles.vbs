@@ -5,6 +5,7 @@ Const ZIP_DIR = "C:\path\to\zip\directory"
 Const DEST_DIR = "C:\path\to\destination\directory"
 Const LIST_FILE = "C:\path\to\list\file.txt"
 Const LOG_FILE = "C:\path\to\log\file.txt"
+Const SEARCH_PATTERN = "tem" ' Pattern to search in file names
 
 Dim fso, zipFileList, zipFile, zipName, destPath, zipFileName, logFile
 Dim countDict
@@ -60,12 +61,15 @@ Sub ProcessFile(file, zipFolder, zipName)
     Dim fileName, destFileName
     fileName = file.Name
     
-    ' Construct destination path and file name
-    destFileName = DEST_DIR & "\" & zipName & "_" & fileName
-    
-    ' Extract file
-    zipFolder.CopyHere file, 4 ' 4 = Do not display progress
-    countDict(zipName) = countDict(zipName) + 1
+    ' Check if the file name contains the search pattern
+    If InStr(fileName, SEARCH_PATTERN) > 0 Then
+        ' Construct destination path and file name
+        destFileName = DEST_DIR & "\" & zipName & "_" & fileName
+        
+        ' Extract file
+        zipFolder.CopyHere file, 4 ' 4 = Do not display progress
+        countDict(zipName) = countDict(zipName) + 1
+    End If
 End Sub
 
 ' Function to process a subfolder
